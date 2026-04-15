@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import numpy as np
-from sklearn.linear_model import LinearRegression
+
 
 app = Flask(__name__)
 CORS(app)  # allow frontend requests
