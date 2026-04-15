@@ -1,0 +1,87 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import requests
+import numpy as np
+from sklearn.linear_model import LinearRegression
+
+app = Flask(__name__)
+CORS(app)  # allow frontend requests
+
+@app.route('/')
+def home():
+    return "Smart Water Monitoring Backend Running 🚀"
+
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    try:
+        data = request.json
+
+        channel_id = data.get('channel_id')
+        api_key = data.get('api_key')
+        tank_height = float(data.get('tank_height'))
+
+        if not channel_id or not api_key:
+            return jsonify({"error": "Missing channel_id or api_key"}), 400
+
+        # 📡 Fetch data from ThingSpeak
+        url = f"https://api.thingspeak.com/channels/{channel_id}/feeds.json?api_key={api_key}&results=50"
+        response = requests.get(url)
+        feeds = response.json().get('feeds', [])
+
+        time = []
+        levels = []
+        distances = []
+
+        for i, entry in enumerate(feeds):
+            if entry.get('field1') is not None:
+                distance = float(entry['field1'])
+
+                # Convert to water level
+                water_level = tank_height - distance
+                water_level = max(0, min(water_level, tank_height))
+
+                time.append(i)
+                levels.append(water_level)
+                distances.append(distance)
+
+        if len(levels) < 3:
+            return jsonify({"error": "Not enough data for prediction"}), 400
+
+        # 🧠 AI Model (Linear Regression)
+        X = np.array(time).reshape(-1, 1)
+        y = np.array(levels)
+
+        model = LinearRegression()
+        model.fit(X, y)
+
+        # 🔮 Predict next 10 values
+        future = np.array(range(len(time), len(time) + 10)).reshape(-1, 1)
+        predictions = model.predict(future).tolist()
+
+        # 🚨 Leakage Detection
+        leakage = False
+        if levels[-1] < levels[-2] - 5:
+            leakage = True
+
+        # 📈 Trend detection
+        trend = "stable"
+        if predictions[-1] < levels[-1]:
+            trend = "decreasing"
+        elif predictions[-1] > levels[-1]:
+            trend = "increasing"
+
+        return jsonify({
+            "levels": levels,
+            "predictions": predictions,
+            "distances": distances,
+            "current_level": levels[-1],
+            "leakage": leakage,
+            "trend": trend
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
