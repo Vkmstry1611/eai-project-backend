@@ -3,13 +3,14 @@ from flask_cors import CORS
 import requests
 import numpy as np
 
-
 app = Flask(__name__)
 CORS(app)  # allow frontend requests
+
 
 @app.route('/')
 def home():
     return "Smart Water Monitoring Backend Running 🚀"
+
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -36,7 +37,7 @@ def analyze():
             if entry.get('field1') is not None:
                 distance = float(entry['field1'])
 
-                # Convert to water level
+                # Convert distance → water level
                 water_level = tank_height - distance
                 water_level = max(0, min(water_level, tank_height))
 
@@ -47,16 +48,16 @@ def analyze():
         if len(levels) < 3:
             return jsonify({"error": "Not enough data for prediction"}), 400
 
-        # 🧠 AI Model (Linear Regression)
-        X = np.array(time).reshape(-1, 1)
+        # 🧠 Linear Regression using NumPy (NO sklearn)
+        X = np.array(time)
         y = np.array(levels)
 
-        model = LinearRegression()
-        model.fit(X, y)
+        # Fit line: y = mx + c
+        m, c = np.polyfit(X, y, 1)
 
         # 🔮 Predict next 10 values
-        future = np.array(range(len(time), len(time) + 10)).reshape(-1, 1)
-        predictions = model.predict(future).tolist()
+        future = np.arange(len(time), len(time) + 10)
+        predictions = (m * future + c).tolist()
 
         # 🚨 Leakage Detection
         leakage = False

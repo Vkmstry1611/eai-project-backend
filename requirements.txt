@@ -2,4 +2,5 @@ flask
 flask-cors
 requests
 numpy
+scikit-learn
 gunicorn
