@@ -71,13 +71,31 @@ def analyze():
         elif predictions[-1] > levels[-1]:
             trend = "increasing"
 
+        # ⏱️ Time to empty (in hours)
+        time_to_empty = None
+        if m < 0:  # level is dropping
+            # levels[last] + m * steps = 0 => steps = -levels[-1] / m
+            steps_to_empty = -levels[-1] / m
+            # each step is one reading interval; assume ~1 min per reading
+            time_to_empty = round((steps_to_empty * 1) / 60, 2)  # hours
+
+        # 🔍 Anomaly detection: actual vs predicted residuals
+        fitted = (m * X + c).tolist()
+        residuals = [abs(levels[i] - fitted[i]) for i in range(len(levels))]
+        mean_res = np.mean(residuals)
+        std_res = np.std(residuals)
+        threshold = mean_res + 2 * std_res
+        anomalies = [i for i, r in enumerate(residuals) if r > threshold]
+
         return jsonify({
             "levels": levels,
             "predictions": predictions,
             "distances": distances,
             "current_level": levels[-1],
             "leakage": leakage,
-            "trend": trend
+            "trend": trend,
+            "time_to_empty": time_to_empty,
+            "anomalies": anomalies,
         })
 
     except Exception as e:
