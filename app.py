@@ -73,10 +73,9 @@ def analyze():
         # ⏱️ Time to empty (in hours)
         time_to_empty = None
         if m < 0:  # level is dropping
-            # levels[last] + m * steps = 0 => steps = -levels[-1] / m
             steps_to_empty = -levels[-1] / m
-            # each step is one reading interval; assume ~1 min per reading
-            time_to_empty = round((steps_to_empty * 1) / 60, 2)  # hours
+            # each reading is every 15 seconds
+            time_to_empty = round((steps_to_empty * 15) / 3600, 2)  # hours
 
         # 🔍 Anomaly detection: actual vs predicted residuals
         fitted = (m * X + c).tolist()
