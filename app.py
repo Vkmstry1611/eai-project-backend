@@ -35,10 +35,9 @@ def analyze():
 
         for i, entry in enumerate(feeds):
             if entry.get('field1') is not None:
-                distance = float(entry['field1'])
+                water_level = float(entry['field1'])
+                distance = float(entry['field2']) if entry.get('field2') is not None else (tank_height - water_level)
 
-                # Convert distance → water level
-                water_level = tank_height - distance
                 water_level = max(0, min(water_level, tank_height))
 
                 time.append(i)
